@@ -15,14 +15,20 @@ fi
 
 status=$(aws cloudformation create-stack \
 --stack-name $1 \
---template-body file://networking.json \
+--template-body file://application.json \
 --region $3 \
 --parameters \
 ParameterKey=vpcName,ParameterValue=$2 \
+ParameterKey=region,ParameterValue=$3 \
 ParameterKey=vpcCidrBlock,ParameterValue=$4 \
 ParameterKey=subnet1CidrBlock,ParameterValue=$5 \
 ParameterKey=subnet2CidrBlock,ParameterValue=$6 \
 ParameterKey=subnet3CidrBlock,ParameterValue=$7 \
+ParameterKey=AMIid,ParameterValue=$8 \
+ParameterKey=ImageS3Bucket,ParameterValue=$9 \
+ParameterKey=awsaccesskeyid,ParameterValue=$10 \
+ParameterKey=awssecretaccesskey,ParameterValue=$11 \
+--capabilities CAPABILITY_NAMED_IAM \
 --on-failure DELETE)
 
 if [ $? -eq 0 ]
