@@ -11,9 +11,11 @@ To create cloudformation using sh command which will create Stack, VPC, SUBNETS,
         - Subnets CIDR block
         - VPC name
         - AMIID
+        - Bucket name(file)
+        - Bucket name (codedeploy)
         - ACCESS KEYS
 
-        - sh createapplication-stack.sh newStack newVPC2 us-east-2 10.0.0.0/16 10.0.0.0/18 10.0.64.0/18 10.0.128.0/17 ami-0fa92182779792f95 newStack_RhfydhufhH453cfb AKIAQU2IXZNOFUQI6WLY 0tSh7IbGBQQO0nKThRmf/vQbQgst16qsUZw9dC8B
+        - sh createapplication-stack.sh newStack newVPC2 us-east-2 10.0.0.0/16 10.0.0.0/18 10.0.64.0/18 10.0.128.0/17 ami-0fa92182779792f95 newStack_hfydhufhh codedeploy.sharwarigothe.me AKIAQU2IXZNOFUQI6WLY 0tSh7IbGBQQO0nKThRmf/vQbQgst16qsUZw9dC8B
 
 To terminate stack along with entire cloudformation
 
