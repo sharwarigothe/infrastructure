@@ -26,8 +26,9 @@ ParameterKey=subnet2CidrBlock,ParameterValue=$6 \
 ParameterKey=subnet3CidrBlock,ParameterValue=$7 \
 ParameterKey=AMIid,ParameterValue=$8 \
 ParameterKey=ImageS3Bucket,ParameterValue=$9 \
-ParameterKey=awsaccesskeyid,ParameterValue=$10 \
-ParameterKey=awssecretaccesskey,ParameterValue=$11 \
+ParameterKey=DeployS3Bucket,ParameterValue=$10 \
+ParameterKey=awsaccesskeyid,ParameterValue=$11 \
+ParameterKey=awssecretaccesskey,ParameterValue=$12 \
 --capabilities CAPABILITY_NAMED_IAM \
 --on-failure DELETE)
 

@@ -42,6 +42,9 @@
     "ImageS3Bucket":{
       "Type" : "String"
     },
+    "DeployS3Bucket":{
+      "Type" : "String"
+    },
     "awsaccesskeyid": {
       "Type" : "String"
     },
@@ -393,6 +396,38 @@
             } 
         } 
     },
+    "CodeDeployS3Bucket":{
+      "Type": "AWS::S3::Bucket",
+      "Properties":{
+          "AccessControl" : "Private",
+          "LifecycleConfiguration" : {
+              "Rules": [
+                  {
+                      "Id" : "GlacierRule",
+                      "Prefix" : "glacier",
+                      "Status" : "Enabled",
+                      "ExpirationInDays" : "365",
+                      "Transitions" : [
+                        {
+                          "TransitionInDays" : "30",
+                          "StorageClass" : "GLACIER"
+                        }
+                      ]
+                  }
+              ]
+          },
+          "BucketName": {
+            "Ref" : "DeployS3Bucket"
+          },
+          "BucketEncryption": {
+            "ServerSideEncryptionConfiguration": [{
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }]
+          } 
+      } 
+  },
     "EC2CSYE6225": {
       "Type": "AWS::IAM::Role",
       "Properties": {
