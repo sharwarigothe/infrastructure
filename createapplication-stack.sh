@@ -29,6 +29,7 @@ ParameterKey=ImageS3Bucket,ParameterValue=$9 \
 ParameterKey=DeployS3Bucket,ParameterValue=$10 \
 ParameterKey=awsaccesskeyid,ParameterValue=$11 \
 ParameterKey=awssecretaccesskey,ParameterValue=$12 \
+ParameterKey=DomainName,ParameterValue=$13 \
 --capabilities CAPABILITY_NAMED_IAM \
 --on-failure DELETE)
 
