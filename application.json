@@ -42,17 +42,39 @@
     "ImageS3Bucket":{
       "Type" : "String"
     },
-    "DeployS3Bucket":{
-      "Type" : "String"
-    },
     "awsaccesskeyid": {
       "Type" : "String"
     },
     "awssecretaccesskey" : {
       "Type" : "String"
+    },
+    "DomainName": {
+      "Type": "String"
     }
   },
   "Resources": {
+    "IAMProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "S3Policy",
+        "Roles": [
+          {
+            "Ref": "EC2CSYE6225"
+          }
+        ]
+      }
+    },
+    "codedeployProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "S3Policy",
+        "Roles": [
+          {
+            "Ref": "CodeDeployEC2ServiceRole"
+          }
+        ]
+      }
+    },
     "VPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
@@ -271,7 +293,7 @@
           }
         ],
         "InstanceType": "t2.micro",
-        "KeyName": "ec2instanceKeyPair",
+        "KeyName": "keypairprodus2",
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
@@ -320,7 +342,8 @@
                 {
                   "Ref": "ImageS3Bucket"
                 },
-                ">> custom.sh\n"
+                " >> custom.sh\n",
+                "sudo echo export DOMAIN_NAME=", {"Ref": "DomainName"}, ">> custom.sh\n"
               ]
             ]
           }
@@ -393,7 +416,7 @@
                   "SSEAlgorithm": "AES256"
                 }
               }]
-            }
+            } 
         } 
     },
     "CodeDeployS3Bucket":{
@@ -428,58 +451,51 @@
           } 
       } 
     },
-    "CircleCIEC2AMI": {
-      "Type": "AWS::IAM::ManagedPolicy",
-      "Properties": {
-        "ManagedPolicyName": "CircleCI-EC2-AMI",
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "ec2:AttachVolume",
-                "ec2:AuthorizeSecurityGroupIngress",
-                "ec2:CopyImage",
-                "ec2:CreateImage",
-                "ec2:CreateKeypair",
-                "ec2:CreateSecurityGroup",
-                "ec2:CreateSnapshot",
-                "ec2:CreateTags",
-                "ec2:CreateVolume",
-                "ec2:DeleteKeyPair",
-                "ec2:DeleteSecurityGroup",
-                "ec2:DeleteSnapshot",
-                "ec2:DeleteVolume",
-                "ec2:DeregisterImage",
-                "ec2:DescribeImageAttribute",
-                "ec2:DescribeImages",
-                "ec2:DescribeInstances",
-                "ec2:DescribeInstanceStatus",
-                "ec2:DescribeRegions",
-                "ec2:DescribeSecurityGroups",
-                "ec2:DescribeSnapshots",
-                "ec2:DescribeSubnets",
-                "ec2:DescribeTags",
-                "ec2:DescribeVolumes",
-                "ec2:DetachVolume",
-                "ec2:GetPasswordData",
-                "ec2:ModifyImageAttribute",
-                "ec2:ModifyInstanceAttribute",
-                "ec2:ModifySnapshotAttribute",
-                "ec2:RegisterImage",
-                "ec2:RunInstances",
-                "ec2:StopInstances",
-                "ec2:TerminateInstances"
-              ],
-              "Resource": "*"
-            }
-          ]
-        },
-        "Users": [
-          "circleci"
-        ]
-      }
+      "EC2CSYE6225": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+            "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [
+                                "ec2.amazonaws.com"
+                            ]
+                        },
+                        "Action": [
+                            "sts:AssumeRole"
+                        ]
+                    }
+                ]
+            },
+            "Path": "/",
+            "Policies": [
+                {
+                  "PolicyName": "WebAppS3", 
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "s3:*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                              {
+                                "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}"
+                              },
+                              {
+                                "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}/*"
+                              }
+                            ]
+                        }
+                    ]
+                }
+                }
+            ]
+        }
     },
     "CodeDeployEC2S3": {
       "Type": "AWS::IAM::Policy",
@@ -528,115 +544,56 @@
         ]
       }
     },
-    "CodeDeployServiceRole": {
-        "Type": "AWS::IAM::Role",
-        "Properties": {
-          "AssumeRolePolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Sid": "CodeDeployServiceRole",
-                "Effect": "Allow",
-                "Principal": {
-                  "Service": [
-                    "codedeploy.amazonaws.com"
-                  ]
-                },
-                "Action": "sts:AssumeRole"
-              }
-            ]
-          },
-          "ManagedPolicyArns": [
-            "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
-          ],
-          "RoleName": "CodeDeployServiceRole"
-        }
-      },
-      "CircleCIUploadToS3": {
-        "Type": "AWS::IAM::Policy",
-        "Properties": {
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "s3:PutObject"
-                ],
-                "Resource": [
-                  {
-                    "Fn::Sub": "arn:aws:s3:::${DeployS3Bucket}/*"
-                  }
-                ]
-              }
-            ]
-          },
-          "PolicyName": "CircleCIUploadToS3",
-          "Users": [
-            "circleci"
-          ]
-        }
-    },
-    "CircleCICodeDeploy": {
-      "Type": "AWS::IAM::Policy",
+    "CodeDeployEC2ServiceRole": {
+      "Type": "AWS::IAM::Role",
       "Properties": {
-        "PolicyDocument": {
+        "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
             {
+              "Sid": "CodeDeployServiceRole",
               "Effect": "Allow",
-              "Action": [
-                "codedeploy:RegisterApplicationRevision",
-                "codedeploy:GetApplicationRevision"
-              ],
-              "Resource": [
-                {
-                  "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${CodeDeployApplication}"
-                }
-              ]
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "codedeploy:CreateDeployment",
-                "codedeploy:GetDeployment"
-              ],
-              "Resource": [
-                {
-                  "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${CodeDeployApplication}/${CodeDeployGroup}"
-                }
-              ]
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "codedeploy:GetDeploymentConfig"
-              ],
-              "Resource": [
-                {
-                  "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:CodeDeployDefault.OneAtATime"
-                },
-                {
-                  "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:CodeDeployDefault.HalfAtATime"
-                },
-                {
-                  "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:CodeDeployDefault.AllAtOnce"
-                }
-              ]
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
             }
           ]
         },
-        "PolicyName": "CircleCI-Code-Deploy",
-        "Users": [
-          "circleci"
-        ]
+        "RoleName": "CodeDeployEC2ServiceRole"
       }
     },
-      "CodeDeployApplication": {
-        "Type": "AWS::CodeDeploy::Application",
-        "Properties": {
-          "ApplicationName": "csye6225-webapp",
-          "ComputePlatform": "Server"
+    "CodeDeployServiceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "CodeDeployServiceRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "codedeploy.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+        ],
+        "RoleName": "CodeDeployServiceRole"
+      }
+    },
+    "CodeDeployApplication": {
+      "Type": "AWS::CodeDeploy::Application",
+      "Properties": {
+        "ApplicationName": "csye6225-webapp",
+        "ComputePlatform": "Server"
       }
     },
     "CodeDeployGroup": {
@@ -673,62 +630,138 @@
         }
       }
     },
-    "CodeDeployEC2ServiceRole": {
-      "Type": "AWS::IAM::Role",
+    "CircleCIUploadToS3": {
+      "Type": "AWS::IAM::Policy",
       "Properties": {
-          "AssumeRolePolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                  {
-                      "Effect": "Allow",
-                      "Principal": {
-                          "Service": [
-                              "ec2.amazonaws.com"
-                          ]
-                      },
-                      "Action": [
-                          "sts:AssumeRole"
-                      ]
-                  }
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:aws:s3:::${DeployS3Bucket}/*"
+                }
               ]
-          },
-          "Path": "/",
-          "Policies": [
-              {
-                "PolicyName": "WebAppS3", 
-                "PolicyDocument": {
-                  "Version": "2012-10-17",
-                  "Statement": [
-                      {
-                          "Action": [
-                              "s3:*"
-                          ],
-                          "Effect": "Allow",
-                          "Resource": [
-                            {
-                              "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}"
-                            },
-                            {
-                              "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}/*"
-                            }
-                          ]
-                      }
-                  ]
-              }
-              }
+            }
           ]
+        },
+        "PolicyName": "CircleCIUploadToS3",
+        "Users": [
+          "circleci"
+        ]
       }
-  },
-  "IAMProfile": {
-    "Type": "AWS::IAM::InstanceProfile",
-    "Properties": {
-      "InstanceProfileName": "S3Policy",
-      "Roles": [
-        {
-          "Ref": "CodeDeployEC2ServiceRole"
+    },
+      "CircleCICodeDeploy": {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "codedeploy:RegisterApplicationRevision",
+                  "codedeploy:GetApplicationRevision"
+                ],
+                "Resource": [
+                  {
+                    "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${CodeDeployApplication}"
+                  }
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "codedeploy:CreateDeployment",
+                  "codedeploy:GetDeployment"
+                ],
+                "Resource": [
+                  {
+                    "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${CodeDeployApplication}/${CodeDeployGroup}"
+                  }
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "codedeploy:GetDeploymentConfig"
+                ],
+                "Resource": [
+                  {
+                    "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:CodeDeployDefault.OneAtATime"
+                  },
+                  {
+                    "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:CodeDeployDefault.HalfAtATime"
+                  },
+                  {
+                    "Fn::Sub": "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:CodeDeployDefault.AllAtOnce"
+                  }
+                ]
+              }
+            ]
+          },
+          "PolicyName": "CircleCI-Code-Deploy",
+          "Users": [
+            "circleci"
+          ]
         }
-      ]
-    }
-  }
+      },
+      "CircleCIEC2AMI": {
+        "Type": "AWS::IAM::ManagedPolicy",
+        "Properties": {
+          "ManagedPolicyName": "CircleCI-EC2-AMI",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:AttachVolume",
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:CopyImage",
+                  "ec2:CreateImage",
+                  "ec2:CreateKeypair",
+                  "ec2:CreateSecurityGroup",
+                  "ec2:CreateSnapshot",
+                  "ec2:CreateTags",
+                  "ec2:CreateVolume",
+                  "ec2:DeleteKeyPair",
+                  "ec2:DeleteSecurityGroup",
+                  "ec2:DeleteSnapshot",
+                  "ec2:DeleteVolume",
+                  "ec2:DeregisterImage",
+                  "ec2:DescribeImageAttribute",
+                  "ec2:DescribeImages",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeInstanceStatus",
+                  "ec2:DescribeRegions",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeSnapshots",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeTags",
+                  "ec2:DescribeVolumes",
+                  "ec2:DetachVolume",
+                  "ec2:GetPasswordData",
+                  "ec2:ModifyImageAttribute",
+                  "ec2:ModifyInstanceAttribute",
+                  "ec2:ModifySnapshotAttribute",
+                  "ec2:RegisterImage",
+                  "ec2:RunInstances",
+                  "ec2:StopInstances",
+                  "ec2:TerminateInstances"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "Users": [
+            "circleci"
+          ]
+        }
+      }
 }
 }
