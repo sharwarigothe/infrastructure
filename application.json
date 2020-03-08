@@ -42,6 +42,9 @@
     "ImageS3Bucket":{
       "Type" : "String"
     },
+    "DeployS3Bucket":{
+      "Type" : "String"
+    },
     "awsaccesskeyid": {
       "Type" : "String"
     },
