@@ -62,17 +62,6 @@
         "InstanceProfileName": "S3Policy",
         "Roles": [
           {
-            "Ref": "EC2CSYE6225"
-          }
-        ]
-      }
-    },
-    "codedeployProfile": {
-      "Type": "AWS::IAM::InstanceProfile",
-      "Properties": {
-        "InstanceProfileName": "S3Policy",
-        "Roles": [
-          {
             "Ref": "CodeDeployEC2ServiceRole"
           }
         ]
@@ -454,52 +443,6 @@
           } 
       } 
     },
-      "EC2CSYE6225": {
-        "Type": "AWS::IAM::Role",
-        "Properties": {
-            "AssumeRolePolicyDocument": {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "Service": [
-                                "ec2.amazonaws.com"
-                            ]
-                        },
-                        "Action": [
-                            "sts:AssumeRole"
-                        ]
-                    }
-                ]
-            },
-            "Path": "/",
-            "Policies": [
-                {
-                  "PolicyName": "WebAppS3", 
-                  "PolicyDocument": {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Action": [
-                                "s3:*"
-                            ],
-                            "Effect": "Allow",
-                            "Resource": [
-                              {
-                                "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}"
-                              },
-                              {
-                                "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}/*"
-                              }
-                            ]
-                        }
-                    ]
-                }
-                }
-            ]
-        }
-    },
     "CodeDeployEC2S3": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
@@ -565,6 +508,31 @@
             }
           ]
         },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "WebAppS3", 
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Action": [
+                          "s3:*"
+                      ],
+                      "Effect": "Allow",
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}"
+                        },
+                        {
+                          "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}/*"
+                        }
+                      ]
+                  }
+              ]
+          }
+          }
+      ],
         "RoleName": "CodeDeployEC2ServiceRole"
       }
     },
