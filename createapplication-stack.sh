@@ -30,6 +30,7 @@ ParameterKey=DeployS3Bucket,ParameterValue=$10 \
 ParameterKey=awsaccesskeyid,ParameterValue=$11 \
 ParameterKey=awssecretaccesskey,ParameterValue=$12 \
 ParameterKey=DomainName,ParameterValue=$13 \
+ParameterKey=keypairvalue,ParameterValue=$14 \
 --capabilities CAPABILITY_NAMED_IAM \
 --on-failure DELETE)
 

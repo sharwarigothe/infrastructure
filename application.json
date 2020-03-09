@@ -53,6 +53,9 @@
     },
     "DomainName": {
       "Type": "String"
+    },
+    "keypairvalue": {
+      "Type": "String"
     }
   },
   "Resources": {
@@ -285,7 +288,9 @@
           }
         ],
         "InstanceType": "t2.micro",
-        "KeyName": "keypairprodus2",
+        "KeyName": {
+          "Ref": "keypairvalue"
+        },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
@@ -508,31 +513,6 @@
             }
           ]
         },
-        "Path": "/",
-        "Policies": [
-          {
-            "PolicyName": "WebAppS3", 
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                  {
-                      "Action": [
-                          "s3:*"
-                      ],
-                      "Effect": "Allow",
-                      "Resource": [
-                        {
-                          "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}"
-                        },
-                        {
-                          "Fn::Sub": "arn:aws:s3:::${ImageS3Bucket}/*"
-                        }
-                      ]
-                  }
-              ]
-          }
-          }
-      ],
         "RoleName": "CodeDeployEC2ServiceRole"
       }
     },
