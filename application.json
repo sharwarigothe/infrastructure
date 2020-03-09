@@ -602,8 +602,7 @@
         },
         "PolicyName": "CircleCIUploadToS3",
         "Users": [
-          "circleci",
-          "cicd"
+          "circleci"
         ]
       }
     },
@@ -658,8 +657,7 @@
           },
           "PolicyName": "CircleCI-Code-Deploy",
           "Users": [
-            "circleci",
-            "cicd"
+            "circleci"
           ]
         }
       },
@@ -712,12 +710,9 @@
             ]
           },
           "Users": [
-            "circleci",
-            "cicd"
+            "circleci"
           ]
         }
       }
-},
-"Outputs": {
 }
 }
