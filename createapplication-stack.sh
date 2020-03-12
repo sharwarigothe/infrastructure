@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#sh csye6225-aws-cf-create-stack.sh
+#sh createapplication-stack.sh
 # 1. applicationstack name 2. VPC NAme 3. AWS region 4. VPC cidr block 5. subnet cidr block
 
 echo "Create the VPC .."

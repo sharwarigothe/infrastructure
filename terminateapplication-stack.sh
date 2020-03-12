@@ -14,6 +14,8 @@ status=$(aws cloudformation delete-stack \
 if [ $? -eq 0 ]
 then
     echo "Waiting on $1 for delete completion..."
+    aws s3 rm s3://codedeploy.sharwarigothe.me --recursive
+    echo "codedeploybucket is empty"
     aws cloudformation wait stack-delete-complete --stack-name $1 --region $2
     if [ $? -eq 0 ]
     then
