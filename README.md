@@ -23,3 +23,5 @@ To terminate stack along with entire cloudformation
     - sh terminateapplication-stack.sh newStac us-east-1
 
     - termination command specifies the stack name and region in which the infrastructure should be built
+
+Cloudformation for cloudwatch
