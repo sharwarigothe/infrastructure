@@ -24,4 +24,4 @@ To terminate stack along with entire cloudformation
 
     - termination command specifies the stack name and region in which the infrastructure should be built
 
-Cloudformation for cloudwatch
+Cloudwatch policies attached to cloudformation
