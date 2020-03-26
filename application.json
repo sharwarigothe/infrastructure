@@ -199,7 +199,7 @@
         }
       }
     },
-    "applicationSecurityGroup": {
+    "EC2InstanceSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Allow http to client host",
@@ -209,15 +209,26 @@
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
-            "FromPort": 22,
-            "ToPort": 22,
+            "FromPort": 3000,
+            "ToPort": 3000,
             "CidrIp": "0.0.0.0/0"
-          },
+          }
+        ]
+      }
+    },
+    "applicationSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable Application access and HTTP from the load balancer only",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
             "FromPort": 3000,
             "ToPort": 3000,
-            "CidrIp": "0.0.0.0/0"
+            "SourceSecurityGroupId" : {"Fn::Select" : [0, {"Fn::GetAtt" : ["ElasticLoadBalancer", "SecurityGroups"]}]}
           }
         ]
       }
@@ -272,21 +283,35 @@
         }
       }
     },
-    "EC2Instance": {
-      "Type": "AWS::EC2::Instance",
-      "DependsOn": "RDS",
+    "WebServerGroup" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "DependsOn" : "ElasticLoadBalancer",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref" : "asglaunchconfig" },
+        "VPCZoneIdentifier" : [{
+          "Ref":"SubnetA"
+        },
+        {
+          "Ref":"SubnetB"
+        },
+        {
+          "Ref":"SubnetC"
+        }],
+        "TargetGroupARNs":[{"Ref": "LoadBalancerTargetGroup"}],
+        "Cooldown" : "60",
+        "MinSize" : "2",
+        "MaxSize" : "5",
+        "DesiredCapacity" : "2"
+      }
+    },
+    "asglaunchconfig": {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
+        "AssociatePublicIpAddress" : "true",
         "ImageId": {
           "Ref": "AMIid"
         },
-        "SubnetId": {
-            "Ref":"SubnetA"
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "applicationSecurityGroup"
-          }
-        ],
+        "SecurityGroups" : [ { "Ref" : "applicationSecurityGroup" } ],
         "InstanceType": "t2.micro",
         "KeyName": {
           "Ref": "keypairvalue"
@@ -347,6 +372,146 @@
         }
       }
     },
+    "WebServerScaleUpPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "WebServerGroup" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "1"
+      }
+    },
+    "WebServerScaleDownPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "WebServerGroup" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "-1"
+      }
+    },
+    "CPUAlarmHigh": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+         "AlarmDescription": "Scale-up if CPU > 5% for 10 minutes",
+         "MetricName": "CPUUtilization",
+         "Namespace": "AWS/EC2",
+         "Statistic": "Average",
+         "Period": "300",
+         "EvaluationPeriods": "2",
+         "Threshold": "5",
+         "AlarmActions": [ { "Ref": "WebServerScaleUpPolicy" } ],
+         "Dimensions": [
+           {
+             "Name": "AutoScalingGroupName",
+             "Value": { "Ref": "WebServerGroup" }
+           }
+         ],
+         "ComparisonOperator": "GreaterThanThreshold"
+       }
+    },
+    "CPUAlarmLow": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+         "AlarmDescription": "Scale-down if CPU < 3% for 10 minutes",
+         "MetricName": "CPUUtilization",
+         "Namespace": "AWS/EC2",
+         "Statistic": "Average",
+         "Period": "300",
+         "EvaluationPeriods": "2",
+         "Threshold": "3",
+         "AlarmActions": [ { "Ref": "WebServerScaleDownPolicy" } ],
+         "Dimensions": [
+           {
+             "Name": "AutoScalingGroupName",
+             "Value": { "Ref": "WebServerGroup" }
+           }
+         ],
+         "ComparisonOperator": "LessThanThreshold"
+       }
+    },
+    "ElasticLoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties" : {
+        "Subnets" : [{
+          "Ref":"SubnetA"
+        },
+        {
+          "Ref":"SubnetB"
+        },
+        {
+          "Ref":"SubnetC"
+        }],
+        "SecurityGroups": [{ "Ref" : "LoadBalancerSecurityGroup"}]
+      }
+    },
+    "LoadBalancerListener" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties" : {
+        "DefaultActions" : [{
+          "Type" : "forward",
+          "TargetGroupArn" : { "Ref" : "LoadBalancerTargetGroup" }
+        }],
+        "LoadBalancerArn" : { "Ref" : "ElasticLoadBalancer" },
+        "Port" : "80",
+        "Protocol" : "HTTP"
+      }
+    },
+    "LoadBalancerTargetGroup" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties" : {
+      "HealthCheckIntervalSeconds" : 30,
+      "HealthCheckTimeoutSeconds" : 5,
+      "HealthCheckPath" : "/check",
+      "Name":"MyTargetGroup",
+      "HealthyThresholdCount" : 3,
+      "Port" : 3000,
+      "Protocol" : "HTTP",
+      "UnhealthyThresholdCount" : 5,
+      "VpcId": {
+        "Ref":"VPC"
+      }
+      }
+    },
+    "LoadBalancerSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupName": "LoadBalancer_SG",
+        "GroupDescription":"enable HTTP access 80 and ssh access 22",
+        "VpcId": {
+          "Ref":"VPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3000",
+            "ToPort": "3000",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "DNSRecord" : {
+      "Type" : "AWS::Route53::RecordSet",
+      "DependsOn" : "ElasticLoadBalancer",
+      "Properties" : {
+        "AliasTarget" :{
+          "DNSName" : {"Fn::GetAtt":["ElasticLoadBalancer","DNSName"]},
+          "EvaluateTargetHealth" : "true",
+          "HostedZoneId" : {"Fn::GetAtt":["ElasticLoadBalancer","CanonicalHostedZoneID"]}
+          },
+         "HostedZoneName" : {"Fn::Join" : [ "", [ {"Ref":"DomainName"}, "."] ]},
+         "Name" : {"Fn::Join" : [ "", [ {"Ref":"DomainName"}, "."] ]},
+         "Type" : "A"
+      }
+    },
+
     "RDSSubnetGroup": {
       "Type": "AWS::RDS::DBSubnetGroup",
       "Properties": {
@@ -576,6 +741,7 @@
             }
           }
         ],
+        "AutoScalingGroups" : [ {"Ref": "WebServerGroup" }],
         "ServiceRoleArn": {
           "Fn::GetAtt": [
             "CodeDeployServiceRole",
@@ -716,8 +882,17 @@
             "circleci"
           ]
         }
-      }
+      } 
 },
 "Outputs": {
+  "ElasticLoadBalancer": {
+    "Description": "Elastic Load Balancer",
+    "Value": {
+      "Ref": "ElasticLoadBalancer"
+    },
+    "Export": {
+      "Name": "ElasticLoadBalancer" 
+    }
+  }
 }
 }
