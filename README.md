@@ -25,3 +25,6 @@ To terminate stack along with entire cloudformation
     - termination command specifies the stack name and region in which the infrastructure should be built
 
 Cloudwatch policies attached to cloudformation
+
+Loadbalancer and autoscaling resources added to the cloudformation infrasturcture.
+Attached policies and using jmeter to put load on the application. Application runs through domain instead of ec2 instance.
