@@ -28,3 +28,4 @@ Cloudwatch policies attached to cloudformation
 
 Loadbalancer and autoscaling resources added to the cloudformation infrasturcture.
 Attached policies and using jmeter to put load on the application. Application runs through domain instead of ec2 instance.
+Added lambda function resources to the cloudformation template along with its roles and policies.
