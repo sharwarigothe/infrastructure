@@ -679,7 +679,8 @@
           ]
         },
         "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+          "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+          "arn:aws:iam::aws:policy/AmazonSNSFullAccess"
         ],
         "RoleName": "CodeDeployEC2ServiceRole"
       }
@@ -882,17 +883,150 @@
             "circleci"
           ]
         }
-      } 
-},
-"Outputs": {
-  "ElasticLoadBalancer": {
-    "Description": "Elastic Load Balancer",
-    "Value": {
-      "Ref": "ElasticLoadBalancer"
+        }, 
+        "CircleCILambdaRole": {
+        "Type": "AWS::IAM::Policy",
+        "DependsOn": "LambdaFunction",
+        "Properties": {
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "lambda:*"
+                ],
+                "Resource": [
+                  {
+                    "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:EmailService"
+                  }
+                ]
+              }
+            ]
+          },
+          "PolicyName": "CircleCILambdaRole",
+          "Users": [
+            "circleci"
+          ]
+        }
+      },
+      "DynamoDBTable": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "id",
+              "AttributeType": "S"
+            }
+          ],
+          "KeySchema": [
+            {
+              "AttributeName": "id",
+              "KeyType": "HASH"
+            }
+          ],
+          "TableName": "csye6225",
+          "BillingMode": "PAY_PER_REQUEST",
+          "TimeToLiveSpecification": {
+            "AttributeName": "ttl",
+            "Enabled": true
+          }
+        }
+      },
+      "LambdaFunction": {
+        "Type": "AWS::Lambda::Function",
+        "DependsOn": "LambdaExecutionRole",
+        "Properties": {
+          "Code": {
+            "ZipFile": {
+              "Fn::Join": [
+                "\n",
+                [
+                  "exports.emailService = function (event, context, callback){ console.log('Hello'); callback(null); }"
+                ]
+              ]
+            }
+          },
+          "FunctionName":"EmailService",
+          "Handler": "index.emailService",
+          "Environment" : {"Variables": {"DOMAIN_NAME":{"Fn::Sub": "${DomainName}"}}},
+          "Role": {
+            "Fn::GetAtt": [
+              "LambdaExecutionRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "nodejs12.x",
+          "Timeout": 20
+        }
+      },
+      "LambdaInvokePermission": {
+        "Type": "AWS::Lambda::Permission",
+        "DependsOn": "SNS",
+        "Properties": {
+          "FunctionName": {
+            "Fn::GetAtt": [
+              "LambdaFunction",
+              "Arn"
+            ]
+          },
+          "Action": "lambda:InvokeFunction",
+          "Principal": "sns.amazonaws.com",
+          "SourceArn": {
+            "Ref": "SNS"
+          }
+        }
+      },
+      "LambdaExecutionRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          },
+          "ManagedPolicyArns": [
+            "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "arn:aws:iam::aws:policy/AmazonSESFullAccess",
+            "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+          ]
+        }
+      },
+      "SNS": {
+        "Type": "AWS::SNS::Topic",
+        "DependsOn": "LambdaFunction",
+        "Properties": {
+          "Subscription": [
+            {
+              "Endpoint": {
+                "Fn::GetAtt": [
+                  "LambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Protocol": "lambda"
+            }
+          ],
+          "TopicName": "EmailTopic"
+        }
+      }
     },
-    "Export": {
-      "Name": "ElasticLoadBalancer" 
+      "Outputs": {
+        "ElasticLoadBalancer": {
+        "Description": "Elastic Load Balancer",
+        "Value": {
+          "Ref": "ElasticLoadBalancer"
+        },
+          "Export": {
+          "Name": "ElasticLoadBalancer" 
+        }
+      }
     }
-  }
-}
 }
