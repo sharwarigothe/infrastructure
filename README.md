@@ -29,3 +29,6 @@ Cloudwatch policies attached to cloudformation
 Loadbalancer and autoscaling resources added to the cloudformation infrasturcture.
 Attached policies and using jmeter to put load on the application. Application runs through domain instead of ec2 instance.
 Added lambda function resources to the cloudformation template along with its roles and policies.
+Added certificate to connect to https and have a secured ssl connection.
+Encrypted mysql rds instance with ssl.
+Created an RDS ParameterGroup and enabled performance_schema to check if the RDS connection is secured

@@ -31,6 +31,7 @@ ParameterKey=awsaccesskeyid,ParameterValue=$11 \
 ParameterKey=awssecretaccesskey,ParameterValue=$12 \
 ParameterKey=DomainName,ParameterValue=$13 \
 ParameterKey=keypairvalue,ParameterValue=$14 \
+ParameterKey=Certificate,ParameterValue=$15 \
 --capabilities CAPABILITY_NAMED_IAM \
 --on-failure DELETE)
 
