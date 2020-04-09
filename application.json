@@ -56,6 +56,9 @@
     },
     "keypairvalue": {
       "Type": "String"
+    },
+    "Certificate": {
+      "Type": "String"
     }
   },
   "Resources": {
@@ -229,6 +232,12 @@
             "FromPort": 3000,
             "ToPort": 3000,
             "SourceSecurityGroupId" : {"Fn::Select" : [0, {"Fn::GetAtt" : ["ElasticLoadBalancer", "SecurityGroups"]}]}
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "443",
+            "ToPort" : "443",
+            "CidrIp": "0.0.0.0/0"
           }
         ]
       }
@@ -445,16 +454,18 @@
         "SecurityGroups": [{ "Ref" : "LoadBalancerSecurityGroup"}]
       }
     },
-    "LoadBalancerListener" : {
+    "LoadBalancerListenerSSL" : {
       "Type" : "AWS::ElasticLoadBalancingV2::Listener",
       "Properties" : {
+        "Certificates" : [
+          {"CertificateArn" : {"Fn::Sub": "${Certificate}"}} ],
         "DefaultActions" : [{
           "Type" : "forward",
           "TargetGroupArn" : { "Ref" : "LoadBalancerTargetGroup" }
         }],
         "LoadBalancerArn" : { "Ref" : "ElasticLoadBalancer" },
-        "Port" : "80",
-        "Protocol" : "HTTP"
+        "Port" : "443",
+        "Protocol" : "HTTPS"
       }
     },
     "LoadBalancerTargetGroup" : {
@@ -477,15 +488,15 @@
       "Type":"AWS::EC2::SecurityGroup",
       "Properties":{
         "GroupName": "LoadBalancer_SG",
-        "GroupDescription":"enable HTTP access 80 and ssh access 22",
+        "GroupDescription":"enable HTTPS access 443 and ssh access 22",
         "VpcId": {
           "Ref":"VPC"
         },
         "SecurityGroupIngress":[
           {
             "IpProtocol": "tcp",
-            "FromPort": "80",
-            "ToPort": "80",
+            "FromPort": "443",
+            "ToPort": "443",
             "CidrIp": "0.0.0.0/0"
           },
           {
@@ -527,6 +538,17 @@
         ]
       }
     },
+      "RDSDBParameterGroup": {
+          "Type": "AWS::RDS::DBParameterGroup",
+          "Properties": {
+              "Description": "CloudFormation Sample MySQL Parameter Group",
+              "Family": "MySQL5.7",
+              "Parameters": {
+                  "sql_mode": "IGNORE_SPACE",
+                    "performance_schema": 1
+              }
+          }
+      },
     "RDS": {
       "Type": "AWS::RDS::DBInstance",
       "Properties": {
@@ -538,14 +560,18 @@
         "MasterUserPassword": "Csye6225password",
         "MasterUsername": "dbuser",
         "MultiAZ": false,
+        "StorageEncrypted": true,
         "DBSubnetGroupName": {
           "Ref": "RDSSubnetGroup"
+        },
+        "DBParameterGroupName": {
+          "Ref": "RDSDBParameterGroup"
         },
         "VPCSecurityGroups": [
           {
             "Ref": "databaseSecurityGroup"
           }
-        ]
+        ]     
       },
       "DeletionPolicy": "Delete"
     },
